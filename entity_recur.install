@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function entity_recur_uninstall() {
+  /*foreach (entity_type_get_types() as $type => $info) {
+    variable_del("entity_recur_enabled_entity_type_{$type}");
+    variable_del("entity_recur_allow_past_dates_entity_type_{$type}");
+    variable_del("entity_recur_max_span_entity_type_{$type}");
+    variable_del("entity_recur_date_field_entity_type_{$type}");
+    variable_del("entity_recur_entity_form_entity_type_{$type}");
+  }*/
+}
