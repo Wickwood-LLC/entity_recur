@@ -47,7 +47,7 @@ function entity_recur_entity_recur_form($form, $form_state, $entity_type, $entit
  */
 function _entity_recur_entity_recur_form($entity_type, $entity) {
   $form = array();
-
+  $settings = entity_recur_get_settings($entity_type, $entity);
   $form['option'] = array(
     '#type' => 'radios',
     '#options' => array(
@@ -119,8 +119,8 @@ function _entity_recur_entity_recur_form($entity_type, $entity) {
       'visible' => array(':input[name="entity_recur[option]"]' => array(array('value' => 'rules'), array('value' => 'days'))),
     ),
   );
-  if ($max = entity_recur_max_future_date_span($entity_type, $entity)) {
-    $form['until']['#description'] .= '&nbsp;' . t('This date can only be up to %max in the future.', array('%max' => $max));
+  if ($settings->max_duration) {
+    $form['until']['#description'] .= '&nbsp;' . t('This date can only be up to %max in the future.', array('%max' => $settings->max_duration));
   }
 
   $form['#recurring_entity'] = $entity;
@@ -143,6 +143,7 @@ function entity_recur_entity_recur_form_validate(&$form, &$form_state) {
 
   $entity = $form['#entity'];
   $entity_type = $form['#entity_type'];
+  $settings = entity_recur_get_settings($entity_type, $entity);
 
   // If days option is selected, make sure we have at least one day
   if ($form_state['values']['entity_recur']['option'] == 'days') {
@@ -165,14 +166,14 @@ function entity_recur_entity_recur_form_validate(&$form, &$form_state) {
     return;
   }
   // Make sure until date is in the future
-  if (!entity_recur_allow_past_dates($entity_type, $entity) && ($until < REQUEST_TIME)) {
+  if (!$settings->allow_past && ($until < REQUEST_TIME)) {
     form_error($form['entity_recur']['until'], t('The end date must be in the future.'));
   }
   // Check that until date isn't too far in the future, according
   // to entity settings (if any)
-  if ($max = entity_recur_max_future_date_span($entity_type, $entity)) {
+  if ($settings->max_duration) {
     if ($until > strtotime($max, REQUEST_TIME)) {
-      form_error($form['entity_recur']['until'], t('The end date can only be up to %max in the future.', array('%max' => $max)));
+      form_error($form['entity_recur']['until'], t('The end date can only be up to %max in the future.', array('%max' => $settings->max_duration)));
     }
   }
 
@@ -247,10 +248,11 @@ function entity_recur_entity_recur_confirm($form, $form_state, $entity_type, $en
 function entity_recur_entity_recur_confirm_submit(&$form, &$form_state) {
   $entity = $form['entity_recur']['#recurring_entity'];
   $entity_type = $form['entity_recur']['#recurring_entity_type'];
+  $settings = entity_recur_get_settings($entity_type, $entity);
   $bundle_name = _entity_recur_get_bundle_name($entity_type, $entity);
   // Log this action
   watchdog('entity_recur', 'Recurring the %type "%title" %count times.', array('%type' => $bundle_name, '%title' => check_plain(entity_label($entity_type, $entity)), '%count' => count($form['#start_dates'])));
-  if (count($form['#start_dates']) < entity_recur_batch_limit($entity_type, $entity)) {
+  if (count($form['#start_dates']) < $settings->batch_limit) {
     foreach ($form['#start_dates'] as $key => $start_date) {
       entity_recur_entity_create_entity($entity_type, $entity, $start_date, isset($form['#end_dates'][$key]) ? $form['#end_dates'][$key] : NULL);
     }

@@ -132,3 +132,12 @@ function hook_entity_recur_recur_menu_path_alter(&$path, $entity_type) {
     $path = 'node/%node/my-recur-path';
   }
 }
+
+/**
+ * Implements hook_default_entity_recur_settings_alter().
+ * @param $settings
+ *   The default settings
+ */
+function hook_default_entity_recur_settings_alter(&$settings) {
+  $settings['node_article']->enabled = FALSE;
+}

@@ -5,3 +5,4 @@ dependencies[] = date
 dependencies[] = date_api
 dependencies[] = entity
 dependencies[] = replicate
+dependencies[] = ctools

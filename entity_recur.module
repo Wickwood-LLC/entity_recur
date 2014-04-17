@@ -38,15 +38,36 @@ function entity_recur_menu() {
       );
     }
   }
-  $items['admin/config/content/entity-recur'] = array(
-    'title' => 'Entity Recur',
-    'description' => 'Entity Recur settings.',
-    'file' => 'entity_recur.admin.inc',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('entity_recur_admin_settings'),
-    'access arguments' => array('administer site configuration'),
-  );
   return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function entity_recur_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools' && $plugin == 'export_ui') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function entity_recur_ctools_plugin_api($owner, $api) {
+  if ($owner == 'entity_recur' && $api == 'entity_recur') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function hook_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'default_entity_recur_settings_alter') {
+    $group = $implementations['entity_recur'];
+    unset($implementations['entity_recur']);
+    $implementations = array('entity_recur' => $group) + $implementations;
+  }
 }
 
 /**
@@ -97,12 +118,14 @@ function entity_recur_field_attach_form($entity_type, $entity, &$form, &$form_st
     // reflected on the entity before checking the permissions.
     global $user;
     $clone->uid = $user->uid;
-    // Check permissions
-    $form['#entity_recur_form'] = entity_recur_access($entity_type, $clone)
-      // See if we should display options for this entity
-      && entity_recur_entity_form_enabled($entity_type, $entity)
+    $settings = entity_recur_get_settings($entity_type, $clone);
+    $form['#entity_recur_form'] = $settings
       // Make sure recurring is enabled for this entity
-      && entity_recur_recurring_enabled($entity_type, $entity);
+      && $settings->enabled
+      // See if we should display options for this entity
+      && $settings->form
+      // Check permissions
+      && entity_recur_access($entity_type, $clone);
 
     if ($form['#entity_recur_form']) {
       $form['#recurring_entity'] = $entity;
@@ -118,9 +141,8 @@ function entity_recur_form_alter(&$form) {
   if (isset($form['#entity_recur_form']) && $form['#entity_recur_form']) {
     $entity = $form['#recurring_entity'];
     $entity_type = $form['#recurring_entity_type'];
+    $settings = entity_recur_get_settings($entity_type, $entity);
     module_load_include('inc', 'entity_recur', 'entity_recur.pages');
-    // Get the date field name
-    $date_field = entity_recur_get_date_field_name($entity_type, $entity);
     // Get the recur form
     $recur_form = _entity_recur_entity_recur_form($entity_type, $entity);
     // Change the default option
@@ -131,7 +153,7 @@ function entity_recur_form_alter(&$form) {
     $form['entity_recur'] = array(
       '#type' => 'fieldset',
       '#title' => t('Recur'),
-      '#weight' => $form[$date_field]['#weight'] + 0.1,
+      '#weight' => $form[$settings->date_field]['#weight'] + 0.1,
       '#tree' => TRUE,
     );
     // Merge the form into the wrapper
@@ -150,12 +172,13 @@ function entity_recur_form_alter(&$form) {
  * Access handler for the entity recur form.
  */
 function entity_recur_entity_recur_form_access($entity_type, $entity) {
+  $settings = entity_recur_get_settings($entity_type, $entity);
   // See if recurring is enabled for this entity.
-  return entity_recur_recurring_enabled($entity_type, $entity)
-    // Check permissions
-    && entity_recur_access($entity_type, $entity)
+  return $settings->enabled
     // Make sure we have a valid date field
-    && entity_recur_get_date_field_name($entity_type, $entity);
+    && $settings->field_name
+    // Check permissions
+    && entity_recur_access($entity_type, $entity);
 }
 
 /**
@@ -205,94 +228,32 @@ function entity_recur_user_is_owner($entity, $account = NULL) {
 }
 
 /**
- * Determine if recurring is enabled for a given bundle
+ * Get the settings for a given bundle
  *
  * @param $entity_type
  *   The entity type
  * @param $entity
  *   The entity
  * @return
- *   TRUE if recurring is enabled, otherwise FALSE
+ *   A settings object if it exists, otherwise FALSE
  */
-function entity_recur_recurring_enabled($entity_type, $entity) {
+function entity_recur_get_settings($entity_type, $entity) {
   list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  return variable_get("entity_recur_enabled_{$entity_type}_{$bundle}", FALSE);
-}
-
-/**
- * Determine if recurring options should appear on the bundle's add form.
- *
- * @param $entity_type
- *   The entity type
- * @param $entity
- *   The entity
- * @return
- *   TRUE if recurring should appear on the bundle's add form, otherwise
- *   FALSE.
- */
-function entity_recur_entity_form_enabled($entity_type, $entity) {
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  return variable_get("entity_recur_entity_form_form_{$entity_type}_{$bundle}", FALSE);
-}
-
-/**
- * Determine if dates in the past are allowed for a bundle.
- *
- * @param $entity_type
- *   The entity type
- * @param $entity
- *   The entity
- * @return
- *   TRUE if past dates are allowed, otherwise
- *   FALSE.
- */
-function entity_recur_allow_past_dates($entity_type, $entity) {
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  return variable_get("entity_recur_allow_past_dates_{$entity_type}_{$bundle}", FALSE);
-}
-
-/**
- * Determine what the max future dates can recur to for a given entity.
- *
- * @param $entity_type
- *   The entity type
- * @param $entity
- *   The entity
- * @return
- *   The max future time span.
- */
-function entity_recur_max_future_date_span($entity_type, $entity) {
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  return variable_get("entity_recur_max_span_{$entity_type}_{$bundle}", NULL);
-}
-
-/**
- * Datermine what the limit is for not using a batch for a given entity.
- */
-function entity_recur_batch_limit($entity_type, $entity) {
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  return variable_get("entity_recur_batch_limit_{$entity_type}_{$bundle}", 50);
-}
-
-/**
- * Determine a bundle's recurring date field name
- *
- * @param $entity_type
- *   The entity type
- * @param $entity
- *   The entity
- * @return
- *   The bundle's date field name, otherwise NULL
- */
-function entity_recur_get_date_field_name($entity_type, $entity) {
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  if (($field_name = variable_get("entity_recur_date_field_{$entity_type}_{$bundle}", FALSE))) {
-    // Check that the instance still exists
-    if (field_info_instance($entity_type, $field_name, $bundle)) {
-      return $field_name;
+  $cache = &drupal_static(__FUNCTION__, array());
+  if (!isset($cache["{$entity_type}_{$bundle}"])) {
+    ctools_include('export');
+    $settings = ctools_export_load_object(
+      'entity_recur_settings',
+      'conditions',
+      array('entity_type' => $entity_type, 'bundle' => $bundle)
+    );
+    $setting =  reset($settings);
+    if (!field_info_instance($entity_type, $setting->date_field, $bundle)) {
+      $setting->date_field = FALSE;
     }
+    $cache["{$entity_type}_{$bundle}"] = $setting;
   }
-  return NULL;
+  return $cache["{$entity_type}_{$bundle}"];
 }
 
 /**
@@ -310,22 +271,19 @@ function entity_recur_get_date_field_name($entity_type, $entity) {
  */
 function entity_recur_get_entity_date_field_value($entity_type, $entity, $start = TRUE) {
   $wrapped = entity_metadata_wrapper($entity_type, $entity);
-  if (($field_name = entity_recur_get_date_field_name($entity_type, $entity))) {
+  $settings = entity_recur_get_settings($entity_type, $entity);
+  if ($settings->date_field) {
     $key = $start ? 'value' : 'value2';
-    $val = $wrapped->{$field_name}->value();
-    if ($val) {
-      return $wrapped->{$field_name}->{$key}->value();
+    $val = $wrapped->{$settings->date_field}->value();
+    if (is_array($val)) {
+      return $wrapped->{$settings->date_field}->{$key}->value();
+    }
+    elseif ($val) {
+      return $val;
     }
   }
   return NULL;
 }
-
-/**
- * Title callback for the recur form menu item
- *
-function entity_recur_menu_title_callback($node) {
-  return t('Repeat this !type', array('!type' => strtolower(node_type_get_name($node))));
-}*/
 
 /**
  * Generate an array of recurring dates based on the provided rule criteria
@@ -353,6 +311,7 @@ function entity_recur_menu_title_callback($node) {
 function entity_recur_generate_dates_rule($entity_type, $entity, $date, $frequency, $period, $until, $weekends = TRUE) {
   $dates = array();
   $month = FALSE;
+  $settings = entity_recur_get_settings($entity_type, $entity);
 
   // Make sure the until is ahead of the date
   if ($date >= $until) {
@@ -385,7 +344,7 @@ function entity_recur_generate_dates_rule($entity_type, $entity, $date, $frequen
     $current = $next;
 
     // Make sure date is in the future, if the settings dictate that
-    if (!entity_recur_allow_past_dates($entity_type, $entity) && $next < REQUEST_TIME) {
+    if (!$settings->allow_past && $next < REQUEST_TIME) {
       continue;
     }
 
@@ -431,6 +390,7 @@ function entity_recur_generate_dates_days($entity_type, $entity, $date, $days, $
   $dates = array();
   $date_obj = new DateObject($date);
   $until_obj = new DateObject($until);
+  $settings = entity_recur_get_settings($entity_type, $entity);
 
   // Move the date back based on the offset
   if ($offset) {
@@ -482,7 +442,7 @@ function entity_recur_generate_dates_days($entity_type, $entity, $date, $days, $
       }
 
       // Make sure date is in the future, if the settings dictate that
-      if (!entity_recur_allow_past_dates($entity_type, $entity) && $date_to_use->getTimestamp() < REQUEST_TIME) {
+      if (!$settings->allow_past && $date_to_use->getTimestamp() < REQUEST_TIME) {
         continue;
       }
 
@@ -719,27 +679,52 @@ function _entity_recur_number_to_weekday($day) {
 function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $end_date = NULL) {
   // Clone the entity
   $clone = replicate_clone_entity($entity_type, $entity);
+  $settings = entity_recur_get_settings($entity_type, $entity);
 
   // Add some helpful markers
   $clone->is_recurring = TRUE;
   $clone->recurring_entity = $entity;
 
   // Inject the new dates
-  $field_name = entity_recur_get_date_field_name($entity_type, $clone);
   $clone_wrapper = entity_metadata_wrapper($entity_type, $clone);
   $property_info = $clone_wrapper->getPropertyInfo();
-  $clone_wrapper->{$field_name}->set(array('value' => ''));
-  if ($property_info[$field_name]['type'] == 'date') {
+  $clone_wrapper->{$settings->date_field}->set(array('value' => ''));
+  if ($property_info[$settings->date_field]['type'] == 'date') {
     // No end date.
-    $clone_wrapper->{$field_name}->set($start_date);
+    $clone_wrapper->{$settings->date_field}->set($start_date);
   }
   else {
-    $clone_wrapper->{$field_name}->value->set($start_date);
+    $clone_wrapper->{$settings->date_field}->value->set($start_date);
     if ($end_date) {
-      $clone_wrapper->{$field_name}->value2->set($end_date);
+      $clone_wrapper->{$settings->date_field}->value2->set($end_date);
     }
   }
 
   // Save the new entity.
   $clone_wrapper->save();
+}
+
+/**
+ * Enable or disable entity recur for a bundle.
+ */
+function entity_recur_settings_status($settings, $status) {
+  ctools_include('export');
+
+  if (!is_object($settings)) {
+    $settings = ctools_export_crud_load('entity_recur_settings', $settings);
+  }
+  if ($settings) {
+    // ctools uses 'disabled', so TRUE means disabled, and FALSE means enabled.
+    $settings->enabled = !$status;
+    ctools_export_crud_save('entity_recur_settings', $settings);
+    ctools_export_set_object_status($settings, $status);
+  }
+}
+
+/**
+ * Save a settings object.
+ */
+function entity_recur_settings_save($settings) {
+  ctools_include('export');
+  ctools_export_crud_save('entity_recur_settings', $settings);
 }
