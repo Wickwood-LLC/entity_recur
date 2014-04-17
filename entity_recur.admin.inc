@@ -74,6 +74,13 @@ function entity_recur_admin_settings($form, &$form_state) {
           '#default_value' => variable_get("entity_recur_entity_form_form_{$entity_type}_{$bundle}", FALSE),
           '#description' => t('If checked, recurring options will appear on the entity add form.'),
         );
+        $form[$entity_type][$bundle]["entity_recur_batch_limit_{$entity_type}_{$bundle}"] = array(
+          '#type' => 'textfield',
+          '#field_prefix' => t('Use a batch when') . '&nbsp;',
+          '#field_suffix' => '&nbsp;' . t('or more entities will be generated.'),
+          '#size' => 5,
+          '#default_value' => variable_get("entity_recur_batch_limit_{$entity_type}_{$bundle}", 50),
+        );
       }
       else {
         $form[$entity_type][$bundle]['entity_recur_null'] = array(

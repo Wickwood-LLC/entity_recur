@@ -28,12 +28,12 @@ function hook_entity_recur_access_alter(&$access, $entity_type, $entity) {
  *   The path that the user will be redirected to after recurring an entity.
  * @param $entity_type
  *   The entity type of the entity being recurred.
- * @param $entity_id
- *   The entity id of the entity being recurred.
+ * @param $entity
+ *   The entity being recurred.
  */
-function hook_entity_recur_batch_redirect_alter(&$path, $entity_type, $entity_id = NULL) {
-  if ($entity_type == 'node' && $entity_id) {
-    $path = 'node/' . $entity_id . '/edit';
+function hook_entity_recur_batch_redirect_alter(&$path, $entity_type, $entity = NULL) {
+  if ($entity_type == 'node' && $entity) {
+    $path = 'node/' . $entity->nid . '/edit';
   }
 }
 

@@ -252,8 +252,7 @@ function entity_recur_allow_past_dates($entity_type, $entity) {
 }
 
 /**
- * Determine what the max future dates can recur to for a given
- * bundle.
+ * Determine what the max future dates can recur to for a given entity.
  *
  * @param $entity_type
  *   The entity type
@@ -265,6 +264,14 @@ function entity_recur_allow_past_dates($entity_type, $entity) {
 function entity_recur_max_future_date_span($entity_type, $entity) {
   list(, , $bundle) = entity_extract_ids($entity_type, $entity);
   return variable_get("entity_recur_max_span_{$entity_type}_{$bundle}", NULL);
+}
+
+/**
+ * Datermine what the limit is for not using a batch for a given entity.
+ */
+function entity_recur_batch_limit($entity_type, $entity) {
+  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+  return variable_get("entity_recur_batch_limit_{$entity_type}_{$bundle}", 50);
 }
 
 /**
@@ -704,4 +711,35 @@ function _entity_recur_number_to_weekday($day) {
     7 => 'sunday',
   );
   return isset($days[$day]) ? $days[$day] : FALSE;
+}
+
+/**
+ * Create the recurring entities
+ */
+function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $end_date = NULL) {
+  // Clone the entity
+  $clone = replicate_clone_entity($entity_type, $entity);
+
+  // Add some helpful markers
+  $clone->is_recurring = TRUE;
+  $clone->recurring_entity = $entity;
+
+  // Inject the new dates
+  $field_name = entity_recur_get_date_field_name($entity_type, $clone);
+  $clone_wrapper = entity_metadata_wrapper($entity_type, $clone);
+  $property_info = $clone_wrapper->getPropertyInfo();
+  $clone_wrapper->{$field_name}->set(array('value' => ''));
+  if ($property_info[$field_name]['type'] == 'date') {
+    // No end date.
+    $clone_wrapper->{$field_name}->set($start_date);
+  }
+  else {
+    $clone_wrapper->{$field_name}->value->set($start_date);
+    if ($end_date) {
+      $clone_wrapper->{$field_name}->value2->set($end_date);
+    }
+  }
+
+  // Save the new entity.
+  $clone_wrapper->save();
 }

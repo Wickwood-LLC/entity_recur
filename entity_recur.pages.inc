@@ -250,41 +250,15 @@ function entity_recur_entity_recur_confirm_submit(&$form, &$form_state) {
   $bundle_name = _entity_recur_get_bundle_name($entity_type, $entity);
   // Log this action
   watchdog('entity_recur', 'Recurring the %type "%title" %count times.', array('%type' => $bundle_name, '%title' => check_plain(entity_label($entity_type, $entity)), '%count' => count($form['#start_dates'])));
-  // TODO: always batch, never batch, or setting?
-  foreach ($form['#start_dates'] as $key => $start_date) {
-    entity_recur_entity_create_entity($entity_type, $entity, $start_date, isset($form['#end_dates'][$key]) ? $form['#end_dates'][$key] : NULL);
-  }
-}
-
-/**
- * Create the recurring entities
- */
-function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $end_date = NULL) {
-  // Clone the entity
-  $clone = replicate_clone_entity($entity_type, $entity);
-
-  // Add some helpful markers
-  $clone->is_recurring = TRUE;
-  $clone->recurring_entity = $entity;
-
-  // Inject the new dates
-  $field_name = entity_recur_get_date_field_name($entity_type, $clone);
-  $clone_wrapper = entity_metadata_wrapper($entity_type, $clone);
-  $property_info = $clone_wrapper->getPropertyInfo();
-  $clone_wrapper->{$field_name}->set(array('value' => ''));
-  if ($property_info[$field_name]['type'] == 'date') {
-    // No end date.
-    $clone_wrapper->{$field_name}->set($start_date);
-  }
-  else {
-    $clone_wrapper->{$field_name}->value->set($start_date);
-    if ($end_date) {
-      $clone_wrapper->{$field_name}->value2->set($end_date);
+  if (count($form['#start_dates']) < entity_recur_batch_limit($entity_type, $entity)) {
+    foreach ($form['#start_dates'] as $key => $start_date) {
+      entity_recur_entity_create_entity($entity_type, $entity, $start_date, isset($form['#end_dates'][$key]) ? $form['#end_dates'][$key] : NULL);
     }
   }
-
-  // Save the new entity.
-  $clone_wrapper->save();
+  else {
+    module_load_include('batch.inc', 'entity_recur');
+    entity_recur_entity_batch_start($entity_type, $entity, $form['#start_dates'], $form['#end_dates']);
+  }
 }
 
 /**
@@ -302,5 +276,4 @@ function _entity_recur_get_bundle_name($entity_type, $entity) {
     return $entity_info['bundles'][$bundle]['label'];
   }
   return $bundle;
-
 }
