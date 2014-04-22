@@ -12,16 +12,20 @@ function entity_recur_entity_recur_form($form, $form_state, $entity_type, $entit
   // Display this entity's date
   $start = entity_recur_get_entity_date_field_value($entity_type, $entity);
   $end = entity_recur_get_entity_date_field_value($entity_type, $entity, FALSE);
-
+  $form['#tree'] = TRUE;
   $form['entity_date'] = array(
     '#type' => 'item',
     '#title' => t('Date'),
     '#markup' => entity_recur_format_date($start, $end),
   );
-  $form = array_merge($form, _entity_recur_entity_recur_form($entity_type, $entity));
+  $form['entity_recur'] = array(
+    '#type' => 'container',
+    '#attributes' => array(),
+  );
+  $form['entity_recur'] = array_merge($form['entity_recur'], _entity_recur_entity_recur_form($entity_type, $entity));
 
   // Remove the "no repeat" option
-  unset($form['option']['#options']['none']);
+  unset($form['entity_recur']['option']['#options']['none']);
 
   $form['submit'] = array(
     '#type' => 'submit',
