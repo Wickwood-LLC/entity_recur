@@ -176,7 +176,7 @@ function entity_recur_entity_recur_form_access($entity_type, $entity) {
   // See if recurring is enabled for this entity.
   return $settings->enabled
     // Make sure we have a valid date field
-    && $settings->field_name
+    && $settings->date_field
     // Check permissions
     && entity_recur_access($entity_type, $entity);
 }
