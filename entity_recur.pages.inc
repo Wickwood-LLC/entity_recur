@@ -226,8 +226,12 @@ function entity_recur_entity_recur_confirm($form, $form_state, $entity_type, $en
   $form['dates']['#markup'] .= '</ul>';
 
   // Store the entity
-  $form['#entity'] = $entity;
-  $form['#entity_type'] = $entity_type;
+  $form['entity_recur'] = array(
+    '#type' => 'container',
+    '#attributes' => array(),
+  );
+  $form['entity_recur']['#recurring_entity'] = $entity;
+  $form['entity_recur']['#recurring_entity_type'] = $entity_type;
 
 
   // Add the submit handler
@@ -249,7 +253,7 @@ function entity_recur_entity_recur_confirm($form, $form_state, $entity_type, $en
 /**
  * Submit the entity recur confirmation form
  */
-function entity_recur_entity_recur_confirm_submit(&$form, &$form_state) {
+function entity_recur_entity_recur_confirm_submit($form, &$form_state) {
   $entity = $form['entity_recur']['#recurring_entity'];
   $entity_type = $form['entity_recur']['#recurring_entity_type'];
   $settings = entity_recur_get_settings($entity_type, $entity);
