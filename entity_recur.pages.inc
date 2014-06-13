@@ -176,7 +176,7 @@ function entity_recur_entity_recur_form_validate(&$form, &$form_state) {
   // Check that until date isn't too far in the future, according
   // to entity settings (if any)
   if ($settings->max_duration) {
-    if ($until > strtotime($max, REQUEST_TIME)) {
+    if ($until > strtotime($settings->max_duration, REQUEST_TIME)) {
       form_error($form['entity_recur']['until'], t('The end date can only be up to %max in the future.', array('%max' => $settings->max_duration)));
     }
   }
