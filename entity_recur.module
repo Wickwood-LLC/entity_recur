@@ -689,7 +689,9 @@ function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $
   // Inject the new dates
   $clone_wrapper = entity_metadata_wrapper($entity_type, $clone);
   $property_info = $clone_wrapper->getPropertyInfo();
-  $clone_wrapper->{$settings->date_field}->set(array('value' => ''));
+  // Commented out the following like to fix error described on
+  // https://www.drupal.org/node/2272781
+  // $clone_wrapper->{$settings->date_field}->set(array('value' => ''));
   if ($property_info[$settings->date_field]['type'] == 'date') {
     // No end date.
     $clone_wrapper->{$settings->date_field}->set($start_date);
