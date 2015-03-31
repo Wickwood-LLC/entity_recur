@@ -678,6 +678,10 @@ function _entity_recur_number_to_weekday($day) {
  * Create the recurring entities
  */
 function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $end_date = NULL) {
+  dsm($entity_type);
+  dsm($entity);
+  dsm($start_date);
+  dsm($end_date);
   // Clone the entity
   $clone = replicate_clone_entity($entity_type, $entity);
   $settings = entity_recur_get_settings($entity_type, $entity);
@@ -689,7 +693,7 @@ function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $
   // Inject the new dates
   $clone_wrapper = entity_metadata_wrapper($entity_type, $clone);
   $property_info = $clone_wrapper->getPropertyInfo();
-  // Commented out the following like to fix error described on
+  // Commented out the following line to fix error described on
   // https://www.drupal.org/node/2272781
   // $clone_wrapper->{$settings->date_field}->set(array('value' => ''));
   if ($property_info[$settings->date_field]['type'] == 'date') {
