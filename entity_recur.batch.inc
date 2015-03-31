@@ -28,7 +28,7 @@ function entity_recur_entity_batch_start($entity_type, $entity, $start_dates, $e
 }
 
 /**
- * Create the recurring entitys
+ * Create the recurring entities
  */
 function entity_recur_entity_batch_create_entity($entity_type, $entity, $start_date, $end_date = NULL, $context) {
   if (!isset($context['results']['source'])) {
