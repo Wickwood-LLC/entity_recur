@@ -678,10 +678,7 @@ function _entity_recur_number_to_weekday($day) {
  * Create the recurring entities
  */
 function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $end_date = NULL) {
-  dsm($entity_type);
-  dsm($entity);
-  dsm($start_date);
-  dsm($end_date);
+  
   // Clone the entity
   $clone = replicate_clone_entity($entity_type, $entity);
   $settings = entity_recur_get_settings($entity_type, $entity);
