@@ -159,10 +159,11 @@ function entity_recur_form_alter(&$form) {
     // Merge the form into the wrapper
     $form['entity_recur'] = array_merge($form['entity_recur'], $recur_form);
     // Add validation and submission
+    // We chose to validate on whatever form actions.
+    // TODO: If validation should be performed only for saving node. Then
+    // move this line inside if condition to make validation specific to node save.
     $form['#validate'][] = 'entity_recur_entity_form_validate';
-    $form['#submit'][] = 'entity_recur_entity_form_submit';
     if (isset($form['actions']['submit'])) {
-      $form['actions']['submit']['#validate'][] = 'entity_recur_entity_form_validate';
       $form['actions']['submit']['#submit'][] = 'entity_recur_entity_form_submit';
     }
   }
