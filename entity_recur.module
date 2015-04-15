@@ -430,7 +430,7 @@ function entity_recur_generate_dates_days($entity_type, $entity, $date, $days, $
       // Determine how many days until the next "day"
       $current->modify("next {$day}");
       // Make sure the hours match, to avoid DST issue
-      $current->setTime($date_obj->format('G'), intval($current->format('i')), intval($current->format('s')));
+      $current->setTime($date_obj->format('G'), intval($date_obj->format('i')), intval($date_obj->format('s')));
 
       // See if this date puts us past the limit
       if ($current->getTimestamp() > $until_obj->getTimestamp()) {
