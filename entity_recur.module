@@ -412,21 +412,23 @@ function entity_recur_generate_dates_days($entity_type, $entity, $date, $days, $
   // Determine which day to start with which would be the closest
   // "next" day, ie, depending on the initial date, next friday
   // may be sooner than next monday.
-  $first_day = NULL;
+  $day_timestamps = array();
   foreach ($days as $day) {
     // Track the current date
     $current = clone $date_obj;
-    // Determine how many days until the next "day"
+    // Find timestamp for next "day" and keep in array.
     $current->modify("next {$day}");
-    if (!$first_day || $current->getTimestamp() < $first_day) {
-      $first_day = $current->getTimestamp();
-    }
+    $day_timestamps[$day] = $current->getTimestamp();
   }
+  // Sort days in order of occurance.
+  asort($day_timestamps, SORT_NUMERIC);
+  $ordered_days = array_keys($day_timestamps);
+
   $current = clone $date_obj;
 
   // Iterate and generate dates until we reach the end
   while (TRUE) {
-    foreach ($days as $day) {
+    foreach ($ordered_days as $day) {
       // Determine how many days until the next "day"
       $current->modify("next {$day}");
       // Make sure the hours match, to avoid DST issue
@@ -447,12 +449,6 @@ function entity_recur_generate_dates_days($entity_type, $entity, $date, $days, $
       if (!$settings->allow_past && $date_to_use->getTimestamp() < REQUEST_TIME) {
         continue;
       }
-
-      // See if we have to skip until we use the first day.
-      if ($first_day && $first_day > $current->getTimestamp()) {
-        continue;
-      }
-      $first_day = NULL;
 
       $dates[] = $date_to_use->getTimestamp();
     }
