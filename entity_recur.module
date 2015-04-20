@@ -678,6 +678,21 @@ function entity_recur_entity_create_entity($entity_type, $entity, $start_date, $
   
   // Clone the entity
   $clone = replicate_clone_entity($entity_type, $entity);
+  // If workbench moderation installed then cloned node will containe
+  // same moderation state structure as original node. Then workbench moderation
+  // module will think, it is saving an existing node without state change.
+  // So, manually mark the cloned node to be set to same moderation state as original
+  // node.
+  if ($entity_type == 'node' && module_exists('workbench_moderation')
+    && workbench_moderation_node_type_moderated($entity->type)
+  ) {
+    // Set that we want node to have new moderation state.
+    $clone->workbench_moderation_state_new = $entity->workbench_moderation['current']->state;
+    // Only revisioned nodes will considered by workbench moderation.
+    $clone->revision = 1;
+    // Clean moderation state history inherited from original node.
+    unset($clone->workbench_moderation);
+  }
   $settings = entity_recur_get_settings($entity_type, $entity);
 
   // Add some helpful markers
