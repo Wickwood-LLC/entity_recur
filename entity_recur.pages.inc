@@ -269,6 +269,11 @@ function entity_recur_entity_recur_confirm_submit($form, &$form_state) {
     module_load_include('batch.inc', 'entity_recur');
     entity_recur_entity_batch_start($entity_type, $entity, $form['#start_dates'], $form['#end_dates']);
   }
+  // Redirect to view page of entity if applicable.
+  $entity_uri_info = entity_uri($entity_type, $entity);
+  if (isset($entity_uri_info['path'])) {
+    $form_state['redirect'] = $entity_uri_info['path'];
+  }
 }
 
 /**
