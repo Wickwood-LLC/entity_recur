@@ -6,3 +6,6 @@ dependencies[] = date_api
 dependencies[] = entity
 dependencies[] = replicate
 dependencies[] = ctools
+
+version = "7.x-1.4"
+project = "entity_recur"
